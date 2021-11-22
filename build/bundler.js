@@ -1,18 +1,9 @@
 function getElementByText(text) {
 	var matchingElement = document.evaluate(
-		`//span[normalize-space()='${text}'] | //a[normalize-space()='${text}'] | //button[normalize-space()='${text}']`,
+		`//*[normalize-space()='${text}']`,
 		document,
 		null,
 		XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-
-	if (!matchingElement) {
-		matchingElement = document.evaluate(
-			`//*[normalize-space()='${text}']`,
-			document,
-			null,
-			XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-
-	}
 
 	if (matchingElement) {
 		return matchingElement
@@ -20,17 +11,36 @@ function getElementByText(text) {
 	else {
 		throw new Error(`DialFaster: No element found with text: ${text}`);
 	}
-
 }
 
+function getSubmitButton() {
+	try {
+		return document.getElementsByClassName("diq-button diq-right diq-btn-gray diq-btn-submit")[0]
+	} catch (e) {
+		throw new Error(`DialFaster: "Submit" button not found`);
+	}
+}
+
+function getNewLead() {
+	try {
+		return document.getElementsByClassName("diq-button-split-label-2 diq-btn-dark-blue")[0]
+	} catch (error) {
+		throw new Error(`DialFaster: "Get Lead" button not found`);
+	}
+}
+
+function getSelectActionMenu() {
+	try {
+		return getElementByText("Select Action")
+	} catch (e) {
+		console.log("No select action menu found on initial search.");
+		return document.getElementsByClassName("diq-truncate")[0]
+	}
+}
 
 async function selectMenuItemRequestNewLead(menuItem) {
 	// 2. hit select action menu
-	try {
-		getElementByText("Select Action").click();
-	} catch (e) {
-		document.getElementsByClassName("diq-truncate")[0].click()
-	}
+	getSelectActionMenu().click();
 
 	// 3. finds and chooses no contact
 	getElementByText(menuItem).click();
@@ -40,13 +50,14 @@ async function selectMenuItemRequestNewLead(menuItem) {
 
 	// 4. observer to detect text of Submit action button
 	var observer = new MutationObserver(function (mutations, me) {
-		var submitBtnText = getElementByText('Submit').innerText.trim();
+		var submitBtnText = getSubmitButton().innerText.trim();
 
 		// waits for inner button text to save
 		if (submitBtnText === "Saved") {
 			// 5. hits get lead buttons
-			getElementByText("Next Lead").dispatchEvent(new MouseEvent("mousedown"));
-			getElementByText("Next Lead").dispatchEvent(new MouseEvent("mouseup"))
+
+			getNewLead().dispatchEvent(new MouseEvent("mousedown"));
+			getNewLead().dispatchEvent(new MouseEvent("mouseup"))
 
 			me.disconnect(); // stop observing
 			return;
@@ -60,7 +71,7 @@ async function selectMenuItemRequestNewLead(menuItem) {
 
 	// 4. hits submit action btn
 	console.log("Pressed submit");
-	getElementByText('Submit').click();
+	getSubmitButton().click();
 }
 
 async function droppedCallNoContact() {
@@ -80,12 +91,11 @@ async function droppedCallNoContact() {
 
 async function calledLeftVoicemail() {
 	// 1. clicks leave voicemail
-	try {
-		document.querySelector('button[data-menu="diq-voicemail"]').click();
-	} catch (e) {
-		throw new Error("DialFaster - Velocify: No leave voicemail button found.");
-	}
-
+	// try {
+	// 	document.querySelector('button[data-menu="diq-voicemail"]').click();
+	// } catch (e) {
+	// 	throw new Error("DialFaster - Velocify: No leave voicemail button found.");
+	// }
 
 	// 2. hit select action menu
 	selectMenuItemRequestNewLead(
